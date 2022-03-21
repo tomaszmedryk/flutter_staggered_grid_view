@@ -39,11 +39,13 @@ class RenderSliverMasonryGrid extends RenderSliverMultiBoxAdaptor {
     required SliverSimpleGridDelegate gridDelegate,
     required double mainAxisSpacing,
     required double crossAxisSpacing,
+    required bool mostLeftAlignment,
   })  : assert(mainAxisSpacing >= 0),
         assert(crossAxisSpacing >= 0),
         _gridDelegate = gridDelegate,
         _mainAxisSpacing = mainAxisSpacing,
         _crossAxisSpacing = crossAxisSpacing,
+        _mostLeftAlignment = mostLeftAlignment,
         super(childManager: childManager);
 
   /// {@template fsgv.global.gridDelegate}
@@ -74,6 +76,16 @@ class RenderSliverMasonryGrid extends RenderSliverMultiBoxAdaptor {
       return;
     }
     _mainAxisSpacing = value;
+    markNeedsLayout();
+  }
+
+  bool get mostLeftAlignment => _mostLeftAlignment;
+  bool _mostLeftAlignment;
+  set mostLeftAlignment(bool value) {
+    if (_mostLeftAlignment == value) {
+      return;
+    }
+    _mostLeftAlignment = value;
     markNeedsLayout();
   }
 
@@ -212,10 +224,10 @@ class RenderSliverMasonryGrid extends RenderSliverMultiBoxAdaptor {
 
     final scrollOffsets = List.filled(crossAxisCount, 0.0);
 
-    double positionChild(RenderBox child) {
-      // We always put the next child at the smallest index with the minimum
-      // value.
-      final crossAxisIndex = scrollOffsets.findSmallestIndexWithMinimumValue();
+    double positionChild(RenderBox child, int index) {
+      final crossAxisIndex = _mostLeftAlignment
+          ? index % crossAxisCount
+          : scrollOffsets.findSmallestIndexWithMinimumValue();
       final childParentData = _getParentData(child);
       childParentData.layoutOffset = scrollOffsets[crossAxisIndex];
       childParentData.crossAxisIndex = crossAxisIndex;
@@ -255,7 +267,7 @@ class RenderSliverMasonryGrid extends RenderSliverMultiBoxAdaptor {
           while (child != null && index <= _lastFirstVisibleChildIndex) {
             // We always put the next child at the smallest index with the minimum
             // value.
-            positionChild(child);
+            positionChild(child, index);
             newPositionOfLastFirstChild = childScrollOffset(child)!;
             child = insertAndLayoutChild(
               childConstraints,
@@ -553,7 +565,7 @@ class RenderSliverMasonryGrid extends RenderSliverMultiBoxAdaptor {
         trailingChildWithLayout = child;
       }
       assert(child != null);
-      positionChild(child!);
+      positionChild(child!, index);
       if (!foundFirstVisibleChild &&
           scrollOffsets.any(
             (scrollOffset) => scrollOffset >= constraints.scrollOffset,
